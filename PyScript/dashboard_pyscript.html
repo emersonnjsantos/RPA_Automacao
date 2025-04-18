@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 Dashboard de Livros Tech</title>
+  <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+  <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1e1e2f 0%, #2c2c3c 100%);
+      color: #f1f1f1;
+      margin: 0;
+      padding: 1.5rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: rgba(44, 44, 60, 0.9);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      text-align: center;
+      color: #4dabf7;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .filter-btn {
+      background: linear-gradient(45deg, #4dabf7, #81ecec);
+      color: #1e1e2f;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(77, 171, 247, 0.5);
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(45deg, #81ecec, #4dabf7);
+      box-shadow: 0 0 15px rgba(77, 171, 247, 0.7);
+    }
+
+    .table-container {
+      background: #2a2a3a;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+    }
+
+    th {
+      background: #3a3a4d;
+      color: #81ecec;
+      font-weight: 600;
+    }
+
+    td {
+      border-bottom: 1px solid #444;
+      transition: background 0.2s;
+    }
+
+    tr:hover td {
+      background: #3a3a4d;
+    }
+
+    .book-img {
+      width: 40px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-right: 1rem;
+      vertical-align: middle;
+    }
+
+    #chart {
+      background: #2a2a3a;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
+
+      .filter-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Dashboard de Livros de Tecnologia</h1>
+
+    <div class="filter-buttons">
+      <button class="filter-btn active" onclick="filtrar('todos')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10m0 0l-4-4m4 4l-4 4"></path></svg>
+        Todos
+      </button>
+      <button class="filter-btn" onclick="filtrar('baixo')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z"></path></svg>
+        Até R$100
+      </button>
+      <button class="filter-btn" onclick="filtrar('medio')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"></path></svg>
+        R$101 a R$200
+      </button>
+      <button class="filter-btn" onclick="filtrar('alto')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17h10m0 0l-4 4m4-4l-4-4"></path></svg>
+        Acima de R$200
+      </button>
+    </div>
+
+    <div class="table-container">
+      <div id="table"></div>
+    </div>
+    <div id="chart"></div>
+  </div>
+
+  <py-config>
+    packages = ["pandas", "matplotlib"]
+  </py-config>
+
+  <py-script>
+import pandas as pd
+import matplotlib.pyplot as plt
+from js import document
+
+livros = pd.DataFrame({
+    "Título": [
+        "Deep Learning com Python",
+        "IA: Uma Abordagem Moderna",
+        "Python para Análise de Dados",
+        "Arquitetura Moderna",
+        "Machine Learning com Scikit",
+        "Redes de Computadores – Tanenbaum"
+    ],
+    "Autor": [
+        "François Chollet",
+        "Russell & Norvig",
+        "Wes McKinney",
+        "Simon Brown",
+        "Aurélien Géron",
+        "A. Tanenbaum"
+    ],
+    "Preço (R$)": [130, 220, 95, 160, 110, 199],
+    "Imagem": [
+        "https://images-na.ssl-images-amazon.com/images/I/41xS+KTp1GL._SX379_BO1,204,203,200_.jpg",
+        "https://images-na.ssl-images-amazon.com/images/I/51z9z4f0+GL._SX379_BO1,204,203,200_.jpg",
+        "https://images-na.ssl-images-amazon.com/images/I/41oYsXjLvZL._SX379_BO1,204,203,200_.jpg",
+        "https://images-na.ssl-images-amazon.com/images/I/41qJ3+1uL6L._SX379_BO1,204,203,200_.jpg",
+        "https://images-na.ssl-images-amazon.com/images/I/41dDKnO+1vL._SX379_BO1,204,203,200_.jpg",
+        "https://images-na.ssl-images-amazon.com/images/I/41z2+3z-K7L._SX379_BO1,204,203,200_.jpg"
+    ]
+})
+
+def mostrar_tabela(dados):
+    html = "<table><tr><th>Título</th><th>Autor</th><th>Preço (R$)</th></tr>"
+    for _, row in dados.iterrows():
+        html += f"<tr><td><img src='{row['Imagem']}' class='book-img' alt='{row['Título']}'>{row['Título']}</td><td>{row['Autor']}</td><td>{row['Preço (R$)']}</td></tr>"
+    html += "</table>"
+    Element("table").element.innerHTML = html
+
+def mostrar_grafico(dados):
+    fig, ax = plt.subplots(figsize=(10, 5))
+    bars = ax.bar(dados["Título"], dados["Preço (R$)"], color="#4dabf7", edgecolor="#81ecec", linewidth=1)
+    ax.set_title("Preços dos Livros", color="white", fontsize=16, pad=20)
+    ax.set_ylabel("R$", color="white", fontsize=12)
+    ax.tick_params(axis='x', rotation=45, colors='white', labelsize=10)
+    ax.tick_params(axis='y', colors='white', labelsize=10)
+    ax.set_facecolor('#2c2c3c')
+    fig.patch.set_facecolor('#2c2c3c')
+    for spine in ax.spines.values():
+        spine.set_color('white')
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height, f'R${height}', 
+                ha='center', va='bottom', color='white', fontsize=10)
+    fig.tight_layout()
+    display(fig, target="chart", clear=True)
+
+def filtrar(faixa):
+    buttons = document.querySelectorAll(".filter-btn")
+    for btn in buttons:
+        btn.classList.remove("active")
+    document.querySelector(f"[onclick=\"filtrar('{faixa}')\"]").classList.add("active")
+    
+    if faixa == "baixo":
+        dados = livros[livros["Preço (R$)"] <= 100]
+    elif faixa == "medio":
+        dados = livros[(livros["Preço (R$)"] > 100) & (livros["Preço (R$)"] <= 200)]
+    elif faixa == "alto":
+        dados = livros[livros["Preço (R$)"] > 200]
+    else:
+        dados = livros
+    mostrar_tabela(dados)
+    mostrar_grafico(dados)
+
+filtrar("todos")
+  </py-script>
+
+  <script>
+    function filtrar(faixa) {
+      const pyScript = document.querySelector("py-script");
+      pyScript.__getattribute__("filtrar")(faixa);
+    }
+  </script>
+</body>
+</html>
