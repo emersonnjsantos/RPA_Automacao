@@ -1,7 +1,7 @@
 
 """
 
-🎯 Aqui está um script completo que:
+🎯  script completo que:
 
 Pergunta ao usuário se ele quer criar ou apagar a pasta,
 
